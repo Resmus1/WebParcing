@@ -1,6 +1,5 @@
 # https://stepik.org/lesson/731861/step/4?unit=733396
 
-import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -11,4 +10,3 @@ with webdriver.Chrome() as browser:
         i.send_keys('Текст')
     browser.find_element(By.ID, 'btn').click()
     print(browser.find_element(By.ID, 'result').text)
-    time.sleep(5)
