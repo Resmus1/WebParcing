@@ -1,5 +1,8 @@
+# https://stepik.org/lesson/732063/step/1?unit=733596
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+
 
 options_chrome = webdriver.ChromeOptions()
 options_chrome.add_argument('--headless=new')
