@@ -13,4 +13,3 @@ with webdriver.Chrome() as browser:
             browser.find_element(By.CLASS_NAME, 'btn').click()
             print(browser.find_element(By.ID, 'result').text)
             break
-
