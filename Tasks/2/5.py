@@ -19,4 +19,3 @@ with webdriver.Chrome(options=options_chrome) as browser:
                 result = browser.find_element(By.ID, 'result').text
                 expiry = key['expiry']
     print(result)
-
