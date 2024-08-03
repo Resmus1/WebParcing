@@ -1,5 +1,4 @@
 # Извлекаем информацию из скаченной страницы
-
 from bs4 import BeautifulSoup
 
 
