@@ -17,4 +17,3 @@ for page in range(1, last_page + 1):
     [item_list.append(item.text) for item in name_items_page]
     all_name_items[f'{page} page'] = item_list
 print(all_name_items)
-
