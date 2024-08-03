@@ -3,7 +3,6 @@ import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 
-
 headers = {'User-agent': UserAgent().random}
 response = requests.get(url='https://parsinger.ru/html/index1_page_1.html', headers=headers)
 response.encoding = 'utf-8'
