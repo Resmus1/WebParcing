@@ -1,11 +1,16 @@
 import requests
 from fake_useragent import UserAgent
-from bs4 import BeautifulSoup
 
+headers = {'User-agent': UserAgent().random, 'x-requested-with': 'XMLHttpRequest'}
+response = requests.get(url='https://bitality.cc/', headers=headers)
 
-headers = {'User-agent': UserAgent().random}
-response = requests.get(url='https://parsinger.ru/html/headphones/5/5_32.html', headers=headers)
-response.encoding = 'utf-8'
-soup = BeautifulSoup(response.text, 'lxml')
-div = soup.find('span', {'name': 'count'})
-print(div)
+# Проверка статуса ответа
+if response.status_code == 200:
+    try:
+        data = response.json()
+        print(data)
+    except ValueError as e:
+        print("Ошибка преобразования в JSON:", e)
+        print("Содержимое ответа:", response.text)
+else:
+    print("Ошибка запроса:", response.status_code)
