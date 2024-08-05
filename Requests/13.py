@@ -1,7 +1,7 @@
 # Проходимся по таблице и делаем словарь, ключ это заголовок, а значение это сумма всех значений в столбце, округлить
 # значения до 3‑х символов.
 import requests
-from fake_useragent import  UserAgent
+from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 
 headers = {'User-Agent': UserAgent().random}
