@@ -1,10 +1,11 @@
 # Парсер для Авито с созданием таблицы
-# Создать проверку на дубли по ссылкам
 # Добавить изменение + отображение в терминале если произошли изменния цены
-# Уточнить подходит ли рандом от 5-15 сам рандом занял време
+# Уточнить подходит ли рандом от 5-15 сам рандом занял время
 # Подумать добавлять ли инфо о продавце
 # Почему-то сразу не пробегает по новым ссылкам, а лишь на следующий запуск, похоже не сохраняет или сохраняет после
 # Создать FakeUSER
+# Создать подсчет количества оставшихся ссылок, нужно счиать не новые ссылки, а то что насчитало количчество необработаных ссылок и уже по ним вести счет
+# Также возникла ошибка, страница не догрузилась, нужно добавить правило повторной загрузки или еще чего
 import csv
 import time
 import random
@@ -27,7 +28,7 @@ try:
         existing_links = [line.strip() for line in file]  # Сохраняем порядок
         print('Открытие файла со списком.')
 except FileNotFoundError:
-    print('Создание списка ссылок')
+    print('Файл не обнаружен, создание списка ссылок')
     existing_links = []
 
 # Считать уже существующие ссылки из CSV-файла
@@ -39,7 +40,7 @@ try:
         existing_csv_links.update(row[-1] for row in reader)
         print('Открытие CSV файла.')
 except FileNotFoundError:
-    print('Создание CSV')
+    print('Файл CSV не найден, создание CSV')
     existing_csv_links = set()
 
 # Инициализация веб-драйвера
@@ -55,14 +56,16 @@ with webdriver.Chrome() as browser:
         new_links = [ad.get_attribute('href') for ad in ads_elements if ad.get_attribute('href') not in existing_links]
         print(f'Найдено {len(new_links)} новых ссылок.')
     except TimeoutException as e:
-        print(f'Ошибка ожидания: {e}')
         browser.save_screenshot('error_screenshot.png')
+        print(f'Ошибка ожидания: {e}, скриншот сохранен')
         exit(1)
 
-# Сохранение новых ссылок в файл
+# Сохранение новых ссылок в файл и открытие нового файла
 with open(links_file, 'a', encoding='utf-8') as file:
     for link in new_links:
         file.write(link + '\n')
+with open(links_file, 'r', encoding='utf-8') as file:
+    existing_links = [line.strip() for line in file]  # Сохраняем порядок
 print('Новые ссылки сохранены в файл.')
 
 # Проверка и запись заголовков, если необходимо
@@ -95,7 +98,6 @@ with webdriver.Chrome() as browser:
         with open(csv_file, 'r', encoding='utf-8-sig') as file:
             reader = csv.reader(file, delimiter=';')
             number = sum(1 for row in reader)  # Получаем количество строк
-            print(f'Продолжаем с нумерацией с {number + 1}.')
     except FileNotFoundError:
         print('CSV файл пуст')
 
@@ -105,7 +107,6 @@ with webdriver.Chrome() as browser:
         for link in existing_links:
             link = link.strip()  # Удаление пробелов по краям
             if link in existing_csv_links:
-                print(f'Пропуск ссылки (уже в CSV): {link}')
                 continue
 
             number += 1
