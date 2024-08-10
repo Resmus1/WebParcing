@@ -1,11 +1,6 @@
 # Парсер для Авито с созданием таблицы
 # Добавить изменение + отображение в терминале если произошли изменния цены
-# Уточнить подходит ли рандом от 5-15 сам рандом занял время
-# Подумать добавлять ли инфо о продавце
-# Почему-то сразу не пробегает по новым ссылкам, а лишь на следующий запуск, похоже не сохраняет или сохраняет после
-# Создать FakeUSER
-# Создать подсчет количества оставшихся ссылок, нужно счиать не новые ссылки, а то что насчитало количчество необработаных ссылок и уже по ним вести счет
-# Также возникла ошибка, страница не догрузилась, нужно добавить правило повторной загрузки или еще чего
+# Добавить чтение нескольких страниц
 import csv
 import time
 import random
@@ -14,6 +9,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+
+# Заранее подготовленный список десктопные User-Agent
+desktop_user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+]
+
+
+def initialize_browser():
+    """
+    Возвращаем откорректированную опцию веб драйвера
+    """
+    options = webdriver.ChromeOptions()
+    options.add_argument(f'user-agent={random.choice(desktop_user_agents)}')
+    return webdriver.Chrome(options=options)
+
 
 # Зафиксировать время начала выполнения скрипта
 start_time = time.time()
@@ -44,7 +60,7 @@ except FileNotFoundError:
     existing_csv_links = set()
 
 # Инициализация веб-драйвера
-with webdriver.Chrome() as browser:
+with initialize_browser() as browser:
     url = 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104'
     browser.get(url)
 
@@ -68,6 +84,9 @@ with open(links_file, 'r', encoding='utf-8') as file:
     existing_links = [line.strip() for line in file]  # Сохраняем порядок
 print('Новые ссылки сохранены в файл.')
 
+# Вычисление количества ссылок которые нужно добавить
+count_links = len(existing_links) - len(existing_csv_links)
+
 # Проверка и запись заголовков, если необходимо
 headers_written = False
 try:
@@ -76,7 +95,7 @@ try:
         first_row = next(reader, None)
         if first_row != [
             '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
-            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка'
+            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка',
         ]:
             headers_written = True
         file.seek(0, 2)  # Переместить указатель в конец файла для записи новых данных
@@ -88,11 +107,11 @@ if headers_written:
         writer = csv.writer(file, delimiter=';')
         writer.writerow([
             '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
-            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка'
+            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка',
         ])
 
 # Обработка новых ссылок
-with webdriver.Chrome() as browser:
+with initialize_browser() as browser:
     number = 0
     try:
         with open(csv_file, 'r', encoding='utf-8-sig') as file:
@@ -109,6 +128,8 @@ with webdriver.Chrome() as browser:
             if link in existing_csv_links:
                 continue
 
+            print(f'Осталось ссылок {count_links}')
+            count_links = count_links - 1
             number += 1
             print(f'Обработка элемента № {number} с ссылкой: {link}')
             try:
