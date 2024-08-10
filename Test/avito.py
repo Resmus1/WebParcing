@@ -1,6 +1,7 @@
 # Парсер для Авито с созданием таблицы
 # Добавить изменение + отображение в терминале если произошли изменния цены
 # Добавить чтение нескольких страниц
+# Не находит в функции TXT а именно не выдает ошибку скорее всего включается другой код
 import csv
 import time
 import random
@@ -21,14 +22,108 @@ desktop_user_agents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 ]
 
+headers = [
+    '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
+    'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка'
+]
+
 
 def initialize_browser():
-    """
-    Возвращаем откорректированную опцию веб драйвера
-    """
+    """Возвращаем откорректированную опцию веб драйвера"""
     options = webdriver.ChromeOptions()
     options.add_argument(f'user-agent={random.choice(desktop_user_agents)}')
     return webdriver.Chrome(options=options)
+
+
+def read_file(file_path, mode='r', encoding='utf-8'):
+    """
+    Чтение файла и возврат содержимого в виде списка строк.
+
+    :param file_path: Путь к файлу.
+    :param mode: Режим открытия файла (по умолчанию 'r').
+    :param encoding: Кодировка файла (по умолчанию 'utf-8').
+    :return: Список строк из файла.
+    """
+    try:
+        with open(file_path, mode, encoding=encoding) as file:
+            print('Открытие файла со списком.')
+            return [line.strip() for line in file]
+    except FileNotFoundError:
+        print('Файл не найден')
+        return []
+
+
+def add_new_elements(file_path, new_elements, existing_elements, encoding='utf-8'):
+    """
+    Добавление новых элементов в файл, если их еще нет в списке,
+    и обновление списка существующих элементов.
+
+    :param file_path: Путь к файлу.
+    :param new_elements: Список новых элементов для добавления.
+    :param existing_elements: Список существующих элементов.
+    :param encoding: Кодировка файла (по умолчанию 'utf-8').
+    :return: Обновленный список существующих элементов.
+    """
+    with open(file_path, 'a', encoding=encoding) as file:
+        for element in new_elements:
+            if element not in existing_elements:
+                file.write(element + '\n')
+                existing_elements.append(element)
+                print(f'Добавлен новый элемент: {element}')
+    return existing_elements
+
+
+def rw_csv(file_path, delimiter=';', headers=None):
+    """
+    Чтение CSV файла и возврат данных в виде множества.
+    Если файл не найден, создать новый CSV файл с заголовками.
+
+    :param file_path: Путь к файлу CSV.
+    :param delimiter: Разделитель в CSV файле.
+    :param headers: Список заголовков для нового файла, если оригинал не найден.
+    :return: Множество ссылок из последнего столбца.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8-sig') as file:
+            reader = csv.reader(file, delimiter=delimiter)
+            next(reader)  # Пропустить заголовок
+            print('Открытие CSV файла.')
+            return set(row[-1] for row in reader)
+    except FileNotFoundError:
+        print('Файл CSV не найден')
+        if headers is not None:
+            try:
+                with open(file_path, 'w', encoding='utf-8-sig', newline='') as file:
+                    writer = csv.writer(file, delimiter=delimiter)
+                    writer.writerow(headers)
+                print(f"CSV файл '{file_path}' успешно создан")
+            except Exception as e:
+                print(f"Ошибка при создании CSV файла: {e}")
+        return set()
+
+
+def fetch_link_data(browser, link, existing_links):
+    """
+    Извлечение ссылок со страницы
+
+    :param browser: Экземпляр веб-драйвера.
+    :param link: Ссылка на страницу для парсинга.
+    :param existing_links: Множество уже существующих ссылок.
+    :return: Список новых ссылок.
+    """
+    browser.get(link)
+    try:
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'a[itemprop="url"][data-marker="item-title"]'))
+        )
+        ads_elements = browser.find_elements(By.CSS_SELECTOR, 'a[itemprop="url"][data-marker="item-title"]')
+        new_links = [ad.get_attribute('href') for ad in ads_elements if ad.get_attribute('href') not in existing_links]
+        print(f'Найдено {len(new_links)} новых ссылок.')
+        return new_links
+    except TimeoutException as e:
+        browser.save_screenshot('error_screenshot.png')
+        print(f'Ошибка ожидания: {e}, скриншот сохранен')
+        return []
 
 
 # Зафиксировать время начала выполнения скрипта
@@ -38,77 +133,20 @@ links_file = 'links.txt'
 csv_file = 'avito.csv'
 
 # Считать уже существующие ссылки из файла
-existing_links = []
-try:
-    with open(links_file, 'r', encoding='utf-8') as file:
-        existing_links = [line.strip() for line in file]  # Сохраняем порядок
-        print('Открытие файла со списком.')
-except FileNotFoundError:
-    print('Файл не обнаружен, создание списка ссылок')
-    existing_links = []
+existing_links = read_file(links_file)
 
-# Считать уже существующие ссылки из CSV-файла
-existing_csv_links = set()
-try:
-    with open(csv_file, 'r', encoding='utf-8-sig') as file:
-        reader = csv.reader(file, delimiter=';')
-        next(reader)  # Пропустить заголовок
-        existing_csv_links.update(row[-1] for row in reader)
-        print('Открытие CSV файла.')
-except FileNotFoundError:
-    print('Файл CSV не найден, создание CSV')
-    existing_csv_links = set()
+# Прочитать CSV файл и создать его, если он не существует
+existing_csv_links = rw_csv('avito.csv', headers=headers)
 
-# Инициализация веб-драйвера
+# Поиск ссылок на странице
 with initialize_browser() as browser:
-    url = 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104'
-    browser.get(url)
+    new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
 
-    try:
-        WebDriverWait(browser, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'a[itemprop="url"][data-marker="item-title"]'))
-        )
-        ads_elements = browser.find_elements(By.CSS_SELECTOR, 'a[itemprop="url"][data-marker="item-title"]')
-        new_links = [ad.get_attribute('href') for ad in ads_elements if ad.get_attribute('href') not in existing_links]
-        print(f'Найдено {len(new_links)} новых ссылок.')
-    except TimeoutException as e:
-        browser.save_screenshot('error_screenshot.png')
-        print(f'Ошибка ожидания: {e}, скриншот сохранен')
-        exit(1)
-
-# Сохранение новых ссылок в файл и открытие нового файла
-with open(links_file, 'a', encoding='utf-8') as file:
-    for link in new_links:
-        file.write(link + '\n')
-with open(links_file, 'r', encoding='utf-8') as file:
-    existing_links = [line.strip() for line in file]  # Сохраняем порядок
-print('Новые ссылки сохранены в файл.')
+# Добавление новых элементов и изменение списка
+add_new_elements(links_file, new_links, existing_links)
 
 # Вычисление количества ссылок которые нужно добавить
 count_links = len(existing_links) - len(existing_csv_links)
-
-# Проверка и запись заголовков, если необходимо
-headers_written = False
-try:
-    with open(csv_file, 'r+', encoding='utf-8-sig', newline='') as file:
-        reader = csv.reader(file, delimiter=';')
-        first_row = next(reader, None)
-        if first_row != [
-            '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
-            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка',
-        ]:
-            headers_written = True
-        file.seek(0, 2)  # Переместить указатель в конец файла для записи новых данных
-except FileNotFoundError:
-    headers_written = True
-# Запись заголовков в CSV
-if headers_written:
-    with open(csv_file, 'a', encoding='utf-8-sig', newline='') as file:
-        writer = csv.writer(file, delimiter=';')
-        writer.writerow([
-            '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
-            'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка',
-        ])
 
 # Обработка новых ссылок
 with initialize_browser() as browser:
