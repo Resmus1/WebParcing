@@ -1,7 +1,10 @@
-# Добавить изменение + отображение в терминале если произошли изменния цены
+# Парсер по Авито, парсит по готовому поиску
+
 # Добавить чтение нескольких страниц
-# Не находит в функции TXT а именно не выдает ошибку скорее всего включается другой код
 # Придумать с выводом и удалением ссылок кортрые 404
+# Убрать ошибку если не находит новые ссылки
+# Сделать так что бы не запускало дважды браузер
+
 import csv
 import time
 import random
@@ -36,8 +39,24 @@ def initialize_browser():
     """Возвращаем откорректированную опцию веб драйвера"""
     options = webdriver.ChromeOptions()
     options.add_argument(f'user-agent={random.choice(desktop_user_agents)}')
+    prefs = {"profile.managed_default_content_settings.images": 2}  # Отключение загрузки изображений
+    options.add_experimental_option("prefs", prefs)
+    # options.add_argument('--headless')  # Запуск браузера в режиме headless
+    options.add_argument('--disable-gpu')  # Отключение GPU
+    options.add_argument('--no-sandbox')  # Отключение песочницы
+    options.add_argument('--disable-dev-shm-usage')  # Отключение использования /dev/shm
+    options.add_argument('--window-size=800,800')  # Размер Окна
+    options.add_argument('--disable-blink-features=AutomationControlled')  # Отключение уведомления о том что это робот
+
+    # Установка прокси
+    # options.add_argument('--proxy-server=http://your_proxy:port')
+
     try:
+        print("Инициализация браузера с указанными параметрами:")
+        print(f"User-Agent: {random.choice(desktop_user_agents)}")
+        print(f"Options: {options.arguments}")
         browser = webdriver.Chrome(options=options)
+        print("Браузер успешно инициализирован.")
         return browser
     except Exception as e:
         print(f'Ошибка инициализации браузера: {e}')
@@ -107,6 +126,22 @@ def rw_csv(file_path, delimiter=';', headers=None):
         return set()
 
 
+def new_link(existing_links):
+    """Ищет новые ссылки и если нет новых ссылок завершает функцию"""
+    with initialize_browser() as browser:
+        all_new_links = []
+        for i in range(1, 70):
+            page_links = fetch_link_data(browser, f'https://www.avito.ru/omsk/noutbuki?cd=1&p={i}&s=104',
+                                         existing_links)
+            if page_links:
+                all_new_links.extend(page_links)
+                print(f'Найдено {len(all_new_links)} новых ссылок')
+            else:
+                print(f'Поиск завершен, найдено {len(all_new_links)} новых ссылок')
+                break
+        return all_new_links
+
+
 def fetch_link_data(browser, link, existing_links):
     """
     Извлечение ссылок со страницы
@@ -123,7 +158,7 @@ def fetch_link_data(browser, link, existing_links):
         )
         ads_elements = browser.find_elements(By.CSS_SELECTOR, 'a[itemprop="url"][data-marker="item-title"]')
         new_links = [ad.get_attribute('href') for ad in ads_elements if ad.get_attribute('href') not in existing_links]
-        print(f'Найдено {len(new_links)} новых ссылок.')
+        time.sleep(random.uniform(5, 15))
         return new_links
     except TimeoutException:
         browser.save_screenshot('error_screenshot.png')
@@ -230,12 +265,12 @@ def main():
     # Прочитать CSV файл и создать его, если он не существует
     existing_csv_links = rw_csv('avito.csv', headers=name_headers)
     # Поиск ссылок на странице
-    with initialize_browser() as browser:
-        new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
-        # Добавление новых элементов и изменение списка
-        add_new_elements(links_file, new_links, existing_links)
-        # Обработка ссылок
-        process_links(browser, existing_links, existing_csv_links, csv_file)
+    all_new_links = new_link(existing_links)
+
+    # Добавление новых элементов и изменение списка
+    add_new_elements(links_file, all_new_links, existing_links)
+    # Обработка ссылок
+    process_links(initialize_browser(), existing_links, existing_csv_links, csv_file)
 
     # Зафиксировать время окончания выполнения скрипта
     end_time = time.time()
