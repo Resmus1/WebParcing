@@ -127,7 +127,6 @@ def rw_csv(file_path, delimiter=';', headers=None):
 
 
 def new_link(existing_links):
-    """Ищет новые ссылки и если нет новых ссылок завершает функцию"""
     with initialize_browser() as browser:
         all_new_links = []
         for i in range(1, 70):
