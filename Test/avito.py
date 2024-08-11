@@ -1,7 +1,7 @@
-# Парсер для Авито с созданием таблицы
 # Добавить изменение + отображение в терминале если произошли изменния цены
 # Добавить чтение нескольких страниц
 # Не находит в функции TXT а именно не выдает ошибку скорее всего включается другой код
+# Придумать с выводом и удалением ссылок кортрые 404
 import csv
 import time
 import random
@@ -69,7 +69,6 @@ def add_new_elements(file_path, new_elements, existing_elements, encoding='utf-8
             if element not in existing_elements:
                 file.write(element + '\n')
                 existing_elements.append(element)
-                print(f'Добавлен новый элемент: {element}')
     return existing_elements
 
 
@@ -126,50 +125,38 @@ def fetch_link_data(browser, link, existing_links):
         return []
 
 
-# Зафиксировать время начала выполнения скрипта
-start_time = time.time()
+def process_links(browser, links, existing_csv_links, csv_file):
+    """
+    Обработка списка ссылок и запись данных в CSV файл.
 
-links_file = 'links.txt'
-csv_file = 'avito.csv'
-
-# Считать уже существующие ссылки из файла
-existing_links = read_file(links_file)
-
-# Прочитать CSV файл и создать его, если он не существует
-existing_csv_links = rw_csv('avito.csv', headers=headers)
-
-# Поиск ссылок на странице
-with initialize_browser() as browser:
-    new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
-
-# Добавление новых элементов и изменение списка
-add_new_elements(links_file, new_links, existing_links)
-
-# Вычисление количества ссылок которые нужно добавить
-count_links = len(existing_links) - len(existing_csv_links)
-
-# Обработка новых ссылок
-with initialize_browser() as browser:
-    number = 0
+    :param browser: Инициализированный веб-драйвер.
+    :param links: Список ссылок для обработки.
+    :param existing_csv_links: Список уже существующих ссылок в CSV файле.
+    :param csv_file: Путь к CSV файлу.
+    """
     try:
         with open(csv_file, 'r', encoding='utf-8-sig') as file:
             reader = csv.reader(file, delimiter=';')
-            number = sum(1 for row in reader)  # Получаем количество строк
+            next(reader, None)  # Пропускаем заголовок
+            count_row = sum(1 for row in reader)  # Получаем количество строк
     except FileNotFoundError:
         print('CSV файл пуст')
+        count_row = 0
 
     with open(csv_file, 'a', encoding='utf-8-sig', newline='') as file:
         writer = csv.writer(file, delimiter=';')
 
-        for link in existing_links:
+        count_links = len(links) - len(existing_csv_links)
+
+        for link in links:
             link = link.strip()  # Удаление пробелов по краям
             if link in existing_csv_links:
                 continue
 
             print(f'Осталось ссылок {count_links}')
-            count_links = count_links - 1
-            number += 1
-            print(f'Обработка элемента № {number} с ссылкой: {link}')
+            count_links -= 1
+            count_row += 1
+            print(f'Обработка элемента № {count_row} с ссылкой: {link}')
             try:
                 browser.get(link)
 
@@ -177,11 +164,13 @@ with initialize_browser() as browser:
                 WebDriverWait(browser, 20).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[itemprop="name"]'))
                 )
-                # Обработка имени (try-except) добавлен на всякий случай!
+
+                # Обработка имени
                 try:
                     name = browser.find_element(By.CSS_SELECTOR, 'h1[itemprop="name"]').text.replace(',', '')
                 except NoSuchElementException:
-                    name = 'Не указано'  # Или любое другое значение по умолчанию
+                    name = 'Не указано'
+
                 # Обработка цены
                 try:
                     price = browser.find_element(By.CSS_SELECTOR, 'span[content]').get_attribute('content')
@@ -191,7 +180,7 @@ with initialize_browser() as browser:
                 params = browser.find_elements(By.CSS_SELECTOR, 'li[class="params-paramsList__item-_2Y2O"]')
 
                 # Создаем список с нужным количеством элементов, заполняем его пустыми строками
-                param_list = [number, '', name, price, '', '', '', '', '', '', '', '', '', '', link]
+                param_list = [count_row, '', name, price, '', '', '', '', '', '', '', '', '', '', link]
                 param_mapping = {
                     'Состояние': 1,
                     'Производитель': 4,
@@ -223,10 +212,37 @@ with initialize_browser() as browser:
             except (TimeoutException, NoSuchElementException) as e:
                 print(f'Ошибка при обработке ссылки {link}: {e}')
                 # Можно сохранить скриншот страницы для анализа
-                browser.save_screenshot(f'error_screenshot_{number}.png')
+                browser.save_screenshot(f'error_screenshot_{count_row}.png')
 
             # Случайная задержка между запросами (например, от 5 до 15 секунд)
             time.sleep(random.uniform(5, 15))
+
+
+# Зафиксировать время начала выполнения скрипта
+start_time = time.time()
+
+links_file = 'links.txt'
+csv_file = 'avito.csv'
+
+# Считать уже существующие ссылки из файла
+existing_links = read_file(links_file)
+
+# Прочитать CSV файл и создать его, если он не существует
+existing_csv_links = rw_csv('avito.csv', headers=headers)
+
+# Поиск ссылок на странице
+with initialize_browser() as browser:
+    new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
+
+# Добавление новых элементов и изменение списка
+add_new_elements(links_file, new_links, existing_links)
+
+# Вычисление количества ссылок которые нужно добавить
+count_links = len(existing_links) - len(existing_csv_links)
+
+# Обработка новых ссылок
+with initialize_browser() as browser:
+    process_links(browser, existing_links, existing_csv_links, csv_file)
 
 # Зафиксировать время окончания выполнения скрипта
 end_time = time.time()
