@@ -36,12 +36,18 @@ def initialize_browser():
     """Возвращаем откорректированную опцию веб драйвера"""
     options = webdriver.ChromeOptions()
     options.add_argument(f'user-agent={random.choice(desktop_user_agents)}')
-    return webdriver.Chrome(options=options)
+    try:
+        browser = webdriver.Chrome(options=options)
+        return browser
+    except Exception as e:
+        print(f'Ошибка инициализации браузера: {e}')
+        return None
 
 
 def read_file(file_path, mode='r', encoding='utf-8'):
     """
     Чтение файла и возврат содержимого в виде списка строк.
+
     :param file_path: Путь к файлу.
     :param mode: Режим открытия файла (по умолчанию 'r').
     :param encoding: Кодировка файла (по умолчанию 'utf-8').
@@ -60,6 +66,7 @@ def add_new_elements(file_path, new_elements, existing_elements, encoding='utf-8
     """
     Добавление новых элементов в файл, если их еще нет в списке,
     и обновление списка существующих элементов.
+
     :param file_path: Путь к файлу.
     :param new_elements: Список новых элементов для добавления.
     :param existing_elements: Список существующих элементов.
@@ -78,6 +85,7 @@ def rw_csv(file_path, delimiter=';', headers=None):
     """
     Чтение CSV файла и возврат данных в виде множества.
     Если файл не найден, создать новый CSV файл с заголовками.
+
     :param file_path: Путь к файлу CSV.
     :param delimiter: Разделитель в CSV файле.
     :param headers: Список заголовков для нового файла, если оригинал не найден.
@@ -102,6 +110,7 @@ def rw_csv(file_path, delimiter=';', headers=None):
 def fetch_link_data(browser, link, existing_links):
     """
     Извлечение ссылок со страницы
+
     :param browser: Экземпляр веб-драйвера.
     :param link: Ссылка на страницу для парсинга.
     :param existing_links: Множество уже существующих ссылок.
@@ -125,6 +134,7 @@ def fetch_link_data(browser, link, existing_links):
 def process_links(browser, links, existing_csv_links, csv_file):
     """
     Обработка списка ссылок и запись данных в CSV файл.
+
     :param browser: Инициализированный веб-драйвер.
     :param links: Список ссылок для обработки.
     :param existing_csv_links: Список уже существующих ссылок в CSV файле.
