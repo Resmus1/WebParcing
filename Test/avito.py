@@ -13,16 +13,20 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 # Заранее подготовленный список десктопные User-Agent
 desktop_user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 "
+    "Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 "
+    "Safari/605.1.15",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 "
+    "Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 "
+    "Safari/537.36"
 ]
 
-headers = [
+name_headers = [
     '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
     'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка'
 ]
@@ -38,7 +42,6 @@ def initialize_browser():
 def read_file(file_path, mode='r', encoding='utf-8'):
     """
     Чтение файла и возврат содержимого в виде списка строк.
-
     :param file_path: Путь к файлу.
     :param mode: Режим открытия файла (по умолчанию 'r').
     :param encoding: Кодировка файла (по умолчанию 'utf-8').
@@ -57,7 +60,6 @@ def add_new_elements(file_path, new_elements, existing_elements, encoding='utf-8
     """
     Добавление новых элементов в файл, если их еще нет в списке,
     и обновление списка существующих элементов.
-
     :param file_path: Путь к файлу.
     :param new_elements: Список новых элементов для добавления.
     :param existing_elements: Список существующих элементов.
@@ -76,7 +78,6 @@ def rw_csv(file_path, delimiter=';', headers=None):
     """
     Чтение CSV файла и возврат данных в виде множества.
     Если файл не найден, создать новый CSV файл с заголовками.
-
     :param file_path: Путь к файлу CSV.
     :param delimiter: Разделитель в CSV файле.
     :param headers: Список заголовков для нового файла, если оригинал не найден.
@@ -91,20 +92,16 @@ def rw_csv(file_path, delimiter=';', headers=None):
     except FileNotFoundError:
         print('Файл CSV не найден')
         if headers is not None:
-            try:
-                with open(file_path, 'w', encoding='utf-8-sig', newline='') as file:
-                    writer = csv.writer(file, delimiter=delimiter)
-                    writer.writerow(headers)
-                print(f"CSV файл '{file_path}' успешно создан")
-            except Exception as e:
-                print(f"Ошибка при создании CSV файла: {e}")
+            with open(file_path, 'w', encoding='utf-8-sig', newline='') as file:
+                writer = csv.writer(file, delimiter=delimiter)
+                writer.writerow(headers)
+            print(f"CSV файл '{file_path}' успешно создан")
         return set()
 
 
 def fetch_link_data(browser, link, existing_links):
     """
     Извлечение ссылок со страницы
-
     :param browser: Экземпляр веб-драйвера.
     :param link: Ссылка на страницу для парсинга.
     :param existing_links: Множество уже существующих ссылок.
@@ -119,16 +116,15 @@ def fetch_link_data(browser, link, existing_links):
         new_links = [ad.get_attribute('href') for ad in ads_elements if ad.get_attribute('href') not in existing_links]
         print(f'Найдено {len(new_links)} новых ссылок.')
         return new_links
-    except TimeoutException as e:
+    except TimeoutException:
         browser.save_screenshot('error_screenshot.png')
-        print(f'Ошибка ожидания: {e}, скриншот сохранен')
+        print(f'Ошибка ожидания, скриншот сохранен')  # СОЗДАТЬ КАКОЕТО ИМЯ А ЛУЧШЕ ССЫЛКУ ПОДПИСЬ К СКРИНШОТУ!
         return []
 
 
 def process_links(browser, links, existing_csv_links, csv_file):
     """
     Обработка списка ссылок и запись данных в CSV файл.
-
     :param browser: Инициализированный веб-драйвер.
     :param links: Список ссылок для обработки.
     :param existing_csv_links: Список уже существующих ссылок в CSV файле.
@@ -147,19 +143,17 @@ def process_links(browser, links, existing_csv_links, csv_file):
         writer = csv.writer(file, delimiter=';')
 
         count_links = len(links) - len(existing_csv_links)
-
         for link in links:
             link = link.strip()  # Удаление пробелов по краям
             if link in existing_csv_links:
                 continue
-
             print(f'Осталось ссылок {count_links}')
             count_links -= 1
             count_row += 1
             print(f'Обработка элемента № {count_row} с ссылкой: {link}')
+
             try:
                 browser.get(link)
-
                 # Ожидание, пока элементы будут видимы на новой странице
                 WebDriverWait(browser, 20).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[itemprop="name"]'))
@@ -170,13 +164,11 @@ def process_links(browser, links, existing_csv_links, csv_file):
                     name = browser.find_element(By.CSS_SELECTOR, 'h1[itemprop="name"]').text.replace(',', '')
                 except NoSuchElementException:
                     name = 'Не указано'
-
                 # Обработка цены
                 try:
                     price = browser.find_element(By.CSS_SELECTOR, 'span[content]').get_attribute('content')
                 except NoSuchElementException:
                     price = 'Нет'
-
                 params = browser.find_elements(By.CSS_SELECTOR, 'li[class="params-paramsList__item-_2Y2O"]')
 
                 # Создаем список с нужным количеством элементов, заполняем его пустыми строками
@@ -218,35 +210,29 @@ def process_links(browser, links, existing_csv_links, csv_file):
             time.sleep(random.uniform(5, 15))
 
 
-# Зафиксировать время начала выполнения скрипта
-start_time = time.time()
+def main():
+    start_time = time.time()  # Зафиксировать время начала выполнения скрипта
+    links_file = 'links.txt'
+    csv_file = 'avito.csv'
 
-links_file = 'links.txt'
-csv_file = 'avito.csv'
+    # Считать уже существующие ссылки из файла
+    existing_links = read_file(links_file)
+    # Прочитать CSV файл и создать его, если он не существует
+    existing_csv_links = rw_csv('avito.csv', headers=name_headers)
+    # Поиск ссылок на странице
+    with initialize_browser() as browser:
+        new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
+        # Добавление новых элементов и изменение списка
+        add_new_elements(links_file, new_links, existing_links)
+        # Обработка ссылок
+        process_links(browser, existing_links, existing_csv_links, csv_file)
 
-# Считать уже существующие ссылки из файла
-existing_links = read_file(links_file)
+    # Зафиксировать время окончания выполнения скрипта
+    end_time = time.time()
+    # Вычислить разницу во времени и вывести
+    elapsed_time = end_time - start_time
+    print("Сбор данных завершен.", f"Время выполнения скрипта: {elapsed_time:.2f} секунд", sep='\n')
 
-# Прочитать CSV файл и создать его, если он не существует
-existing_csv_links = rw_csv('avito.csv', headers=headers)
 
-# Поиск ссылок на странице
-with initialize_browser() as browser:
-    new_links = fetch_link_data(browser, 'https://www.avito.ru/omsk/noutbuki?cd=1&p=1&s=104', existing_links)
-
-# Добавление новых элементов и изменение списка
-add_new_elements(links_file, new_links, existing_links)
-
-# Вычисление количества ссылок которые нужно добавить
-count_links = len(existing_links) - len(existing_csv_links)
-
-# Обработка новых ссылок
-with initialize_browser() as browser:
-    process_links(browser, existing_links, existing_csv_links, csv_file)
-
-# Зафиксировать время окончания выполнения скрипта
-end_time = time.time()
-
-# Вычислить разницу во времени и вывести
-elapsed_time = end_time - start_time
-print("Сбор данных завершен.", f"Время выполнения скрипта: {elapsed_time:.2f} секунд", sep='\n')
+if __name__ == "__main__":
+    main()
