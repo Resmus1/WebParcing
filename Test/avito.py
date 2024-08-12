@@ -1,9 +1,9 @@
 # Парсер по Авито, парсит по готовому поиску
 
-# Добавить чтение нескольких страниц
 # Придумать с выводом и удалением ссылок кортрые 404
-# Убрать ошибку если не находит новые ссылки
-# Сделать так что бы не запускало дважды браузер
+# расширить данные на основе примера которые грабятся
+# Разбраться с IP при каких случаях происходит блок
+# Перевести время в часы и минуты вместо секунд
 
 import csv
 import time
@@ -126,21 +126,6 @@ def rw_csv(file_path, delimiter=';', headers=None):
         return set()
 
 
-def new_link(existing_links):
-    with initialize_browser() as browser:
-        all_new_links = []
-        for i in range(1, 70):
-            page_links = fetch_link_data(browser, f'https://www.avito.ru/omsk/noutbuki?cd=1&p={i}&s=104',
-                                         existing_links)
-            if page_links:
-                all_new_links.extend(page_links)
-                print(f'Найдено {len(all_new_links)} новых ссылок')
-            else:
-                print(f'Поиск завершен, найдено {len(all_new_links)} новых ссылок')
-                break
-        return all_new_links
-
-
 def fetch_link_data(browser, link, existing_links):
     """
     Извлечение ссылок со страницы
@@ -163,6 +148,25 @@ def fetch_link_data(browser, link, existing_links):
         browser.save_screenshot('error_screenshot.png')
         print(f'Ошибка ожидания, скриншот сохранен')  # СОЗДАТЬ КАКОЕТО ИМЯ А ЛУЧШЕ ССЫЛКУ ПОДПИСЬ К СКРИНШОТУ!
         return []
+
+
+def new_link(browser, existing_links):
+    """Обработка новых ссылок добавление в список
+
+    :param browser: Экземпляр веб-драйвера.
+    :param existing_links: Множество уже существующих ссылок.
+    :return: Список новых ссылок."""
+    all_new_links = []
+    for i in range(1, 70):
+        page_links = fetch_link_data(browser, f'https://www.avito.ru/omsk/noutbuki?cd=1&p={i}&s=104',
+                                     existing_links)
+        if page_links:
+            all_new_links.extend(page_links)
+            print(f'Найдено {len(all_new_links)} новых ссылок')
+        else:
+            print(f'Поиск завершен, найдено {len(all_new_links)} новых ссылок')
+            break
+    return all_new_links
 
 
 def process_links(browser, links, existing_csv_links, csv_file):
@@ -203,11 +207,18 @@ def process_links(browser, links, existing_csv_links, csv_file):
                     EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[itemprop="name"]'))
                 )
 
+                # Проверка на 404
+                if "К сожалению, это объявление больше не доступно" in browser.page_source:
+                    print(f'Ссылка {link} недоступна (404). Удаление ссылки.')
+                    # ДОБАВИТЬ УДАЛЕНИЕ ССЫЛКИ ЕСЛИ 404
+                    continue
+
                 # Обработка имени
                 try:
                     name = browser.find_element(By.CSS_SELECTOR, 'h1[itemprop="name"]').text.replace(',', '')
                 except NoSuchElementException:
                     name = 'Не указано'
+
                 # Обработка цены
                 try:
                     price = browser.find_element(By.CSS_SELECTOR, 'span[content]').get_attribute('content')
@@ -256,20 +267,24 @@ def process_links(browser, links, existing_csv_links, csv_file):
 
 def main():
     start_time = time.time()  # Зафиксировать время начала выполнения скрипта
-    links_file = 'links.txt'
+    list_file = 'links.txt'
     csv_file = 'avito.csv'
 
     # Считать уже существующие ссылки из файла
-    existing_links = read_file(links_file)
+    existing_links = read_file(list_file)
     # Прочитать CSV файл и создать его, если он не существует
     existing_csv_links = rw_csv('avito.csv', headers=name_headers)
-    # Поиск ссылок на странице
-    all_new_links = new_link(existing_links)
 
+    browser = initialize_browser()
+    if not browser:
+        print("Ошибка инициализации браузера. Завершение работы.")
+        return
+    # Поиск ссылок на странице
+    all_new_links = new_link(browser, existing_links)
     # Добавление новых элементов и изменение списка
-    add_new_elements(links_file, all_new_links, existing_links)
+    add_new_elements(list_file, all_new_links, existing_links)
     # Обработка ссылок
-    process_links(initialize_browser(), existing_links, existing_csv_links, csv_file)
+    process_links(browser, existing_links, existing_csv_links, csv_file)
 
     # Зафиксировать время окончания выполнения скрипта
     end_time = time.time()
