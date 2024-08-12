@@ -1,9 +1,9 @@
 # Парсер по Авито, парсит по готовому поиску
 
-# Придумать с выводом и удалением ссылок кортрые 404
-# расширить данные на основе примера которые грабятся
 # Разбраться с IP при каких случаях происходит блок
 # Перевести время в часы и минуты вместо секунд
+# Проблемы с IP после нескольких обновлений могут пропадать
+# Добавлена на 404 но нужно проверять сработает ли так или только при ошибки
 
 import csv
 import time
@@ -12,7 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
 
 # Заранее подготовленный список десктопные User-Agent
 desktop_user_agents = [
@@ -30,8 +30,9 @@ desktop_user_agents = [
 ]
 
 name_headers = [
-    '№', 'Состояние', 'Наименование', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта',
-    'Объем видеопамяти', 'ОЗУ', 'Диагональ', 'Диск', 'Объем диска', 'Код конфигурации', 'Ссылка'
+    '№', 'Заголовок', 'Цена', 'Производитель', 'Модель', 'Процессор', 'Видеокарта', 'ОВУ', 'ОЗУ',
+    'Диаг.', 'Диск', 'ПЗУ', 'Код конфигурации', 'Состояние', 'Описание', 'Контактное лицо', 'Тип продавца', 'Адрес',
+    'Ссылка на объявление',
 ]
 
 
@@ -210,7 +211,7 @@ def process_links(browser, links, existing_csv_links, csv_file):
                 # Проверка на 404
                 if "К сожалению, это объявление больше не доступно" in browser.page_source:
                     print(f'Ссылка {link} недоступна (404). Удаление ссылки.')
-                    # ДОБАВИТЬ УДАЛЕНИЕ ССЫЛКИ ЕСЛИ 404
+                    links.remove(link)
                     continue
 
                 # Обработка имени
@@ -224,22 +225,58 @@ def process_links(browser, links, existing_csv_links, csv_file):
                     price = browser.find_element(By.CSS_SELECTOR, 'span[content]').get_attribute('content')
                 except NoSuchElementException:
                     price = 'Нет'
+
+                # Обработка параметров
                 params = browser.find_elements(By.CSS_SELECTOR, 'li[class="params-paramsList__item-_2Y2O"]')
 
+                # Обработка описания
+                try:
+                    description_element = browser.find_element(By.CSS_SELECTOR,
+                                                               'div[data-marker="item-view/item-description"] p')
+                    description = description_element.text.replace(',', '')
+                except NoSuchElementException:
+                    description = 'Нет'
+
+                # Обработка информации о продавце
+                seller_info_elements = browser.find_elements(By.CSS_SELECTOR,
+                                                             'div[class="style-seller-info-col-PETb_"]')
+
+                # Инициализация переменных значениями по умолчанию
+                seller = 'Нет'
+                type_seller = 'Нет'
+
+                for seller_info in seller_info_elements:
+                    try:
+                        seller = seller_info.find_element(By.CLASS_NAME, 'styles-module-size_ms-YUHT8').text
+                        type_seller = seller_info.find_element(By.CSS_SELECTOR,
+                                                               'div[data-marker="seller-info/label"]').text
+                        break  # Выход из цикла, если элемент найден
+                    except NoSuchElementException:
+                        continue  # Переход к следующему элементу, если не найдено
+
+                # Обработка адреса
+                try:
+                    ads_seller = browser.find_element(By.CSS_SELECTOR,
+                                                      'span[class="style-item-address__string-wt61A"]').text.replace(
+                        ',', '')
+                except NoSuchElementException:
+                    ads_seller = 'Нет'
+
                 # Создаем список с нужным количеством элементов, заполняем его пустыми строками
-                param_list = [count_row, '', name, price, '', '', '', '', '', '', '', '', '', '', link]
+                param_list = [count_row, name, price, 4, '', '', '', '', '', '', '', '', '', '', description, seller,
+                              type_seller, ads_seller, link]
                 param_mapping = {
-                    'Состояние': 1,
-                    'Производитель': 4,
-                    'Модель': 5,
-                    'Процессор': 6,
-                    'Видеокарта': 7,
-                    'Объем видеопамяти': 8,
-                    'Оперативная память': 9,
-                    'Диагональ': 10,
-                    'Конфигурация накопителей': 11,
-                    'Объем накопителей': 12,
-                    'Код конфигурации': 13,
+                    'Производитель': 3,
+                    'Модель': 4,
+                    'Процессор': 5,
+                    'Видеокарта': 6,
+                    'Объем видеопамяти': 7,
+                    'Оперативная память': 8,
+                    'Диагональ': 9,
+                    'Конфигурация накопителей': 10,
+                    'Объем накопителей': 11,
+                    'Код конфигурации': 12,
+                    'Состояние': 13,
                 }
 
                 # Заполнение параметров
@@ -256,7 +293,12 @@ def process_links(browser, links, existing_csv_links, csv_file):
                 writer.writerow(param_list)
                 print('Запись данных завершена.')
 
-            except (TimeoutException, NoSuchElementException) as e:
+            except (TimeoutException, NoSuchElementException, StaleElementReferenceException) as e:
+                if NoSuchElementException:
+                    # Блокировка IP
+                    if "Доступ ограничен: проблема с IP" in browser.page_source:
+                        print('Блокировка IP')
+                        exit()
                 print(f'Ошибка при обработке ссылки {link}: {e}')
                 # Можно сохранить скриншот страницы для анализа
                 browser.save_screenshot(f'error_screenshot_{count_row}.png')
