@@ -182,7 +182,7 @@ def process_links(browser, links, existing_csv_links, csv_file):
         with open(csv_file, 'r', encoding='utf-8-sig') as file:
             reader = csv.reader(file, delimiter=';')
             next(reader, None)  # Пропускаем заголовок
-            count_row = sum(1 for row in reader)  # Получаем количество строк
+            count_row = len(list(reader))  # Получаем количество строк
     except FileNotFoundError:
         print('CSV файл пуст')
         count_row = 0
