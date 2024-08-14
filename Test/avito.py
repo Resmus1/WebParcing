@@ -1,11 +1,5 @@
 # Парсер по Авито, парсит по готовому поиску
 
-# Разбраться с IP при каких случаях происходит блок
-# Перевести время в часы и минуты вместо секунд
-# Проблемы с IP после нескольких обновлений могут пропадать
-# Добавлена на 404 но нужно проверять сработает ли так или только при ошибки сделать так что бы обновляло файл после, а не просто из списка убирало
-# Не зафискировало все описание изза 2х начал с новой строки, зафиксировало лищшь одну фразу, нужно сливать весь текст вместе!
-# Скорее всего функцию завершения можно удалить
 import signal
 import sys
 import csv
@@ -19,13 +13,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException,
 
 # Заранее подготовленный список десктопные User-Agent
 desktop_user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 "
-    "Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 "
     "Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 "
     "Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 "
@@ -261,9 +250,7 @@ def process_links(browser, links, existing_csv_links, csv_file, remove_list):
                 try:
                     description_element = browser.find_element(By.CSS_SELECTOR,
                                                                'div[data-marker="item-view/item-description"] p')
-                    description = ' '.join(
-                        line.strip() for line in description_element.text.replace(',', '').splitlines() if line.strip())
-
+                    description = ' '.join(description_element.text.replace(',', '').split())
                 except NoSuchElementException:
                     description = 'Нет'
 
@@ -337,7 +324,7 @@ def process_links(browser, links, existing_csv_links, csv_file, remove_list):
                 # Можно сохранить скриншот страницы для анализа
                 browser.save_screenshot(f'error_screenshot_{count_row}.png')
             # Случайная задержка между запросами (например, от 5 до 15 секунд)
-            time.sleep(random.uniform(5, 7))
+            time.sleep(random.uniform(5, 15))
 
 
 def main():
@@ -382,11 +369,6 @@ def main():
         # Вычислить разницу во времени и вывести
         elapsed_time = end_time - start_time
         print("Сбор данных завершен.", f"Время выполнения скрипта: {elapsed_time:.2f} секунд", sep='\n')
-
-        # Закрытие браузера
-        if browser is not None:
-            browser.quit()
-            print('Завершение программы...')
 
 
 if __name__ == "__main__":
