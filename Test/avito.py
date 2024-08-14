@@ -3,8 +3,11 @@
 # Разбраться с IP при каких случаях происходит блок
 # Перевести время в часы и минуты вместо секунд
 # Проблемы с IP после нескольких обновлений могут пропадать
-# Добавлена на 404 но нужно проверять сработает ли так или только при ошибки
-
+# Добавлена на 404 но нужно проверять сработает ли так или только при ошибки сделать так что бы обновляло файл после, а не просто из списка убирало
+# Не зафискировало все описание изза 2х начал с новой строки, зафиксировало лищшь одну фразу, нужно сливать весь текст вместе!
+# Скорее всего функцию завершения можно удалить
+import signal
+import sys
 import csv
 import time
 import random
@@ -36,11 +39,22 @@ name_headers = [
 ]
 
 
+def signal_handler(sig, frame):
+    # Закрытие файлов или другие завершающие действия
+    sys.exit(0)
+
+
 def initialize_browser():
     """Возвращаем откорректированную опцию веб драйвера"""
     options = webdriver.ChromeOptions()
     options.add_argument(f'user-agent={random.choice(desktop_user_agents)}')
-    prefs = {"profile.managed_default_content_settings.images": 2}  # Отключение загрузки изображений
+    prefs = {
+        'profile.managed_default_content_settings.javascript': 2,
+        'profile.managed_default_content_settings.images': 2,
+        'profile.managed_default_content_settings.mixed_script': 2,
+        'profile.managed_default_content_settings.media_stream': 2,
+        'profile.managed_default_content_settings.stylesheets': 2,
+    }  # Отключение загрузки изображений и других скриптов c CSS
     options.add_experimental_option("prefs", prefs)
     # options.add_argument('--headless')  # Запуск браузера в режиме headless
     options.add_argument('--disable-gpu')  # Отключение GPU
@@ -99,6 +113,25 @@ def add_new_elements(file_path, new_elements, existing_elements, encoding='utf-8
                 file.write(element + '\n')
                 existing_elements.append(element)
     return existing_elements
+
+
+def remove_link(file_path, remove_list, encoding='utf-8'):
+    """Удаление нерабочих ссылок из списка.
+
+    :param file_path: Путь к файлу.
+    :param remove_list: Список ссылок на удаление из файла.
+    :param encoding: Кодировка файла (по умолчанию 'utf-8').
+    """
+    # Чтение текущих ссылок из файла
+    with open(file_path, 'r', encoding=encoding) as file:
+        list_link = [line.strip() for line in file]
+
+    # Удаление ссылок из списка
+    updated_list_link = [link for link in list_link if link not in remove_list]
+
+    # Запись обновленного списка обратно в файл
+    with open(file_path, 'w', encoding=encoding) as file:
+        file.writelines(f"{link}\n" for link in updated_list_link)
 
 
 def rw_csv(file_path, delimiter=';', headers=None):
@@ -170,7 +203,7 @@ def new_link(browser, existing_links):
     return all_new_links
 
 
-def process_links(browser, links, existing_csv_links, csv_file):
+def process_links(browser, links, existing_csv_links, csv_file, remove_list):
     """
     Обработка списка ссылок и запись данных в CSV файл.
 
@@ -178,6 +211,7 @@ def process_links(browser, links, existing_csv_links, csv_file):
     :param links: Список ссылок для обработки.
     :param existing_csv_links: Список уже существующих ссылок в CSV файле.
     :param csv_file: Путь к CSV файлу.
+    :param remove_list: Список ссылок на удаление.
     """
     try:
         with open(csv_file, 'r', encoding='utf-8-sig') as file:
@@ -208,12 +242,6 @@ def process_links(browser, links, existing_csv_links, csv_file):
                     EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[itemprop="name"]'))
                 )
 
-                # Проверка на 404
-                if "К сожалению, это объявление больше не доступно" in browser.page_source:
-                    print(f'Ссылка {link} недоступна (404). Удаление ссылки.')
-                    links.remove(link)
-                    continue
-
                 # Обработка имени
                 try:
                     name = browser.find_element(By.CSS_SELECTOR, 'h1[itemprop="name"]').text.replace(',', '')
@@ -233,7 +261,9 @@ def process_links(browser, links, existing_csv_links, csv_file):
                 try:
                     description_element = browser.find_element(By.CSS_SELECTOR,
                                                                'div[data-marker="item-view/item-description"] p')
-                    description = description_element.text.replace(',', '')
+                    description = ' '.join(
+                        line.strip() for line in description_element.text.replace(',', '').splitlines() if line.strip())
+
                 except NoSuchElementException:
                     description = 'Нет'
 
@@ -299,40 +329,64 @@ def process_links(browser, links, existing_csv_links, csv_file):
                     if "Доступ ограничен: проблема с IP" in browser.page_source:
                         print('Блокировка IP')
                         exit()
+                    # Проверка на 404
+                    if "Объявление не посмотреть" or "К сожалению, это объявление больше не доступно" in browser.page_source:
+                        print(f'Ссылка недоступна (404). Удаление ссылки.')
+                        continue
                 print(f'Ошибка при обработке ссылки {link}: {e}')
                 # Можно сохранить скриншот страницы для анализа
                 browser.save_screenshot(f'error_screenshot_{count_row}.png')
-
             # Случайная задержка между запросами (например, от 5 до 15 секунд)
-            time.sleep(random.uniform(5, 15))
+            time.sleep(random.uniform(5, 7))
 
 
 def main():
-    start_time = time.time()  # Зафиксировать время начала выполнения скрипта
+    # Регистрация обработчика сигнала
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    browser = None  # Инициализация переменной browser
     list_file = 'links.txt'
     csv_file = 'avito.csv'
+    remove_list = []
 
     # Считать уже существующие ссылки из файла
     existing_links = read_file(list_file)
     # Прочитать CSV файл и создать его, если он не существует
     existing_csv_links = rw_csv('avito.csv', headers=name_headers)
 
-    browser = initialize_browser()
-    if not browser:
-        print("Ошибка инициализации браузера. Завершение работы.")
-        return
-    # Поиск ссылок на странице
-    all_new_links = new_link(browser, existing_links)
-    # Добавление новых элементов и изменение списка
-    add_new_elements(list_file, all_new_links, existing_links)
-    # Обработка ссылок
-    process_links(browser, existing_links, existing_csv_links, csv_file)
+    start_time = time.time()  # Зафиксировать время начала выполнения скрипта
 
-    # Зафиксировать время окончания выполнения скрипта
-    end_time = time.time()
-    # Вычислить разницу во времени и вывести
-    elapsed_time = end_time - start_time
-    print("Сбор данных завершен.", f"Время выполнения скрипта: {elapsed_time:.2f} секунд", sep='\n')
+    try:
+        browser = initialize_browser()
+        if not browser:
+            print("Ошибка инициализации браузера. Завершение работы.")
+            return
+
+        # Поиск ссылок на странице
+        all_new_links = new_link(browser, existing_links)
+        # Добавление новых элементов и изменение списка
+        add_new_elements(list_file, all_new_links, existing_links)
+        # Обработка ссылок
+        process_links(browser, existing_links, existing_csv_links, csv_file, remove_list)
+
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+
+    finally:
+        # Удаление 404 ссылок
+        remove_link(list_file, remove_list)
+
+        # Зафиксировать время окончания выполнения скрипта
+        end_time = time.time()
+        # Вычислить разницу во времени и вывести
+        elapsed_time = end_time - start_time
+        print("Сбор данных завершен.", f"Время выполнения скрипта: {elapsed_time:.2f} секунд", sep='\n')
+
+        # Закрытие браузера
+        if browser is not None:
+            browser.quit()
+            print('Завершение программы...')
 
 
 if __name__ == "__main__":
