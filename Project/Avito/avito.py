@@ -333,14 +333,14 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     browser = None  # Инициализация переменной browser
-    list_file = 'links.txt'
-    csv_file = 'avito.csv'
+    list_file = '../links.txt'
+    csv_file = '../avito.csv'
     remove_list = []
 
     # Считать уже существующие ссылки из файла
     existing_links = read_file(list_file)
     # Прочитать CSV файл и создать его, если он не существует
-    existing_csv_links = rw_csv('avito.csv', headers=name_headers)
+    existing_csv_links = rw_csv('../avito.csv', headers=name_headers)
 
     start_time = time.time()  # Зафиксировать время начала выполнения скрипта
 
