@@ -6,12 +6,18 @@ import json
 
 
 def parsing(url):
-    """Парсит указаную страницу по указаным правилам"""
+    """Парсит указанную страницу по правилам"""
     headers = {'User-Agent': UserAgent().random}
-    response = requests.get(url, headers=headers)
-    response.encoding = 'utf-8'
-    soup = BeautifulSoup(response.text, 'lxml')
-    return soup
+    try:
+        response = requests.get(url, headers=headers)
+        response.encoding = 'utf-8'
+        if response.status_code != 200:
+            raise Exception(f"Ошибка при запросе: {response.status_code}")
+        soup = BeautifulSoup(response.text, 'lxml')
+        return soup
+    except requests.RequestException as e:
+        print(f"Ошибка при запросе: {e}")
+        return None
 
 
 def collect_info(soup):
@@ -19,33 +25,60 @@ def collect_info(soup):
     name = [x.text.strip() for x in soup.find_all('a', class_='name_item')]
     description = [x.text.strip().split('\n') for x in soup.find_all('div', class_='description')]
     price = [x.text for x in soup.find_all('p', class_='price')]
-    print(description)
+
+    # Проверка на случай отсутствия данных
+    if not (name and description and price):
+        print("Данные не найдены.")
+        return [], [], []
+
     return name, description, price
 
 
+def parse_description(description):
+    """Извлекает данные из описания карточки"""
+    try:
+        brand = description[0].split(': ')[1].strip()
+        type_ = description[1].split(':')[1].strip()
+        connect = description[2].split(': ')[1].strip()
+        game = description[3].split(': ')[1].strip()
+        return brand, type_, connect, game
+    except (IndexError, ValueError):
+        return None, None, None, None  # Если вдруг чего-то не хватает
+
+
 def create_zip(name, description, price):
-    """Создается json список с собраными данными"""
+    """Создает JSON список с собранными данными"""
     result_json = []
-    for description, price, name in zip(description, price, name):
-        result_json.append({
-            'name': name,
-            'brand': [x.split(': ')[1].strip() for x in description][0],
-            'type': [x.split(':')[1].strip() for x in description][1],
-            'connect': [x.split(': ')[1].strip() for x in description][2],
-            'game': [x.split(': ')[1].strip() for x in description][3],
-            'price': price,
-        })
+    for desc, pr, nm in zip(description, price, name):
+        brand, type_, connect, game = parse_description(desc)
+        if None not in (brand, type_, connect, game):  # Только если все данные корректны
+            result_json.append({
+                'name': nm,
+                'brand': brand,
+                'type': type_,
+                'connect': connect,
+                'game': game,
+                'price': pr,
+            })
     return result_json
 
 
-def create_json(result_json):
-    """Создается json файл с собраными данными"""
-    with open('res.json', 'w', encoding='utf-8') as file:
+def create_json(result_json, filename='res.json'):
+    """Создает JSON файл с собранными данными"""
+    with open(filename, 'w', encoding='utf-8') as file:
         json.dump(result_json, file, indent=4, ensure_ascii=False)
-        print('Done')
+        print(f'Файл {filename} успешно создан.')
 
 
-base = parsing('https://parsinger.ru/html/index2_page_1.html')
-list_name, list_description, list_price = collect_info(base)
-result = create_zip(list_name, list_description, list_price)
-create_json(result)
+# Пример использования
+url = 'https://parsinger.ru/html/index2_page_1.html'
+soup = parsing(url)
+
+if soup:
+    list_name, list_description, list_price = collect_info(soup)
+    result = create_zip(list_name, list_description, list_price)
+
+    if result:
+        create_json(result)
+    else:
+        print("Нет данных для записи.")
