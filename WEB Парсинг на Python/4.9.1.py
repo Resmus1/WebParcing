@@ -1,4 +1,4 @@
-# Собрать все данные с карточек в файл json
+# Собрать все данные с карточек в файл json.
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
