@@ -1,5 +1,5 @@
 # Собрать данные с карточки и ссылку и сохранить в json
-# Упустил указание категории, но немного надоело возиться поэтому оставлю как есть)
+# Упустил указание категории, но немного надоело возиться поэтому оставлю как есть.
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,7 +12,7 @@ def get_soup(url):
     try:
         headers = {'User-Agent': UserAgent().random}
         response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # Проверка на успешный ответ. Выдаст ошибку если страница 404 и вернет None
+        response.raise_for_status()
         response.encoding = 'utf-8'
         return BeautifulSoup(response.text, 'lxml')
     except requests.RequestException as e:
@@ -22,24 +22,27 @@ def get_soup(url):
 
 def collect_page_list(home_url, soup):
     """Собирает список страниц в категории для парсинга"""
-    url_list = []
+    url_list = set()  # Используем set для уникальности
     nav_menu = soup.find('div', class_='pagen')
     if nav_menu:
-        for link in nav_menu.find_all('a', href=True):  # Поиск только ссылок с переходом на другой url.
-            url_list.append(home_url.split('index')[0] + link['href'])
-    return url_list
+        for link in nav_menu.find_all('a', href=True):
+            full_url = home_url.split('index')[0] + link['href']
+            url_list.add(full_url)  # Добавляем уникальный URL
+    return list(url_list)  # Преобразуем обратно в список
 
 
 def collect_item_list(base_url, url_list):
     """Собирает весь список ссылок с товарами для парсинга"""
-    item_list = []
+    item_list = set()  # Используем set для уникальности
     for url in url_list:
         soup = get_soup(url)
+        if not soup:
+            continue  # Пропускаем, если страница не была загружена
         links = soup.find('div', class_='item_card')
         if links:
-            for item in links.find_all('a', string='Подробнее'):  # Поиск по тэгу p
-                item_list.append(base_url.split('index')[0] + item['href'])
-    return item_list
+            for item in links.find_all('a', string='Подробнее'):
+                item_list.add(base_url.split('index')[0] + item['href'])  # Добавляем уникальный URL
+    return list(item_list)  # Преобразуем обратно в список
 
 
 def collect_info(items):
@@ -47,21 +50,30 @@ def collect_info(items):
     item_desc_list = []
     for url in items:
         soup = get_soup(url)
-        options = soup.find_all('div', class_='description')
-        for item in options:
-            name = item.find(id='p_header').get_text(strip=True)
-            article = item.find(class_='article').get_text(strip=True).split(': ')[1]
-
+        if not soup:
+            continue  # Пропускаем, если страница не была загружена
+        descriptions = soup.find_all('div', class_='description')
+        for item in descriptions:
+            name = item.find(id='p_header')
+            article = item.find(class_='article')
             ext_desc = item.find('ul', id='description')
-            description = {element['id']: element.get_text(strip=True).split(': ')[1]
-                           for element in ext_desc.find_all('li')}
+            count = item.find(id='in_stock')
+            price = item.find(id='price')
+            old_price = item.find(id='old_price')
 
-            count = item.find(id='in_stock').get_text(strip=True).split(': ')[1]
-            price = item.find(id='price').get_text(strip=True)
-            old_price = item.find(id='old_price').get_text(strip=True)
-            link = url
-            item_desc_list.append({'name': name, 'article': article, 'description': description, 'count': count,
-                                   'price': price, 'old_price': old_price, 'link': link})
+            # Проверка на существование элементов перед их использованием
+            if name and article and ext_desc and count and price and old_price:
+                description = {element['id']: element.get_text(strip=True).split(': ')[1]
+                               for element in ext_desc.find_all('li')}
+                item_desc_list.append({
+                    'name': name.get_text(strip=True),
+                    'article': article.get_text(strip=True).split(': ')[1],
+                    'description': description,
+                    'count': count.get_text(strip=True).split(': ')[1],
+                    'price': price.get_text(strip=True),
+                    'old_price': old_price.get_text(strip=True),
+                    'link': url
+                })
     return item_desc_list
 
 
