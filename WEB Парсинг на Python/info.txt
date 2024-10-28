@@ -1,0 +1,11 @@
+Изучение курса. (Представлено решение задач курса)
+
+WEB Парсинг на Python:
+https://stepik.org/course/104774/promo
+
+В него входит дополнительно:
+    Selenium Python:
+    https://stepik.org/course/119495/info
+
+
+Автор курса: https://stepik.org/users/khoshev/teach
