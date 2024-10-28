@@ -1,10 +1,15 @@
 # https://stepik.org/lesson/732063/step/12?unit=733596
 
+
+# Импортируем необходимые модули из библиотеки Selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+# Настройки для браузера Chrome
 options_chrome = webdriver.ChromeOptions()
-options_chrome.add_argument('--headless=new')
+options_chrome.add_argument('--headless=new')  # Запускаем браузер в фоновом режиме (без GUI)
+
+# Список куки для добавления в браузер
 cookies_list = [{'name': 'KXIYO4xMrWh', 'value': 'ibyAZPfXAsPqptPaNyL'},
                 {'name': '0OIJ4G4ZLzK', 'value': 'kJcPzQu5Jr8ELK'},
                 {'name': 'O1C4sd3RK5udnZ6P', 'value': '4mYYxbfgnIvuip2ry58EQ'},
@@ -105,19 +110,33 @@ cookies_list = [{'name': 'KXIYO4xMrWh', 'value': 'ibyAZPfXAsPqptPaNyL'},
                 {'name': 'hbFS4sDwQh', 'value': 's4zWhushscPPDDFqT5tzPJqix0HMjjG'},
                 {'name': 'b9wAAVSyw4V2LQ', 'value': 'SDkldbPnf6NjLZSxWZV7CpCW'},
                 {'name': 'jFhFn0wPFRG', 'value': 'RYqOrD21ZN7aUeBXqISZ2afocnvvwd6hw3BXUj1wEm0mUO'}]
+
+# Используем контекстный менеджер для открытия браузера
 with webdriver.Chrome(options=options_chrome) as browser:
+    # Переходим на целевую страницу
     browser.get('https://parsinger.ru/selenium/5.6/1/index.html')
-    temp_age_lang = {'name': '', 'age': 99, 'count_lang': 0}
+
+    # Инициализируем временные переменные для хранения информации о пользователе
+    temp_age_lang = {'name': '', 'age': 99, 'count_lang': 0}  # Максимально возможный возраст, чтобы проще сравнивать
+
+    # Проходим по каждому элементу из списка куков
     for cookie in cookies_list:
-        browser.delete_all_cookies()
-        browser.add_cookie(cookie)
-        browser.refresh()
-        name = browser.find_element(By.XPATH, '//span[@id="name"]').text[6:]
-        age = int(browser.find_element(By.XPATH, '//span[@id="age"]').text[5:])
-        count_lang = len(browser.find_element(By.XPATH, '//ul[@id="skillsList"]').text.split())
+        browser.delete_all_cookies()  # Удаляем все куки перед добавлением новых
+        browser.add_cookie(cookie)  # Добавляем куки в браузер
+        browser.refresh()  # Обновляем страницу, чтобы применить куки
+
+        # Извлекаем информацию о пользователе с веб-страницы
+        name = browser.find_element(By.XPATH, '//span[@id="name"]').text[6:]  # Получаем имя
+        age = int(browser.find_element(By.XPATH, '//span[@id="age"]').text[5:])  # Получаем возраст и конвертируем в int
+        count_lang = len(
+            browser.find_element(By.XPATH, '//ul[@id="skillsList"]').text.split())  # Подсчитываем количество языков
+
+        # Сравниваем полученные данные с временными переменными
         if age < temp_age_lang['age'] and count_lang > temp_age_lang['count_lang']:
-            temp_age_lang['name'] = name
-            temp_age_lang['age'] = age
-            temp_age_lang['count_lang'] = count_lang
-            temp_age_lang['cookie_value'] = cookie['value']
+            temp_age_lang['name'] = name  # Сохраняем имя
+            temp_age_lang['age'] = age  # Сохраняем возраст
+            temp_age_lang['count_lang'] = count_lang  # Сохраняем количество языков
+            temp_age_lang['cookie_value'] = cookie['value']  # Сохраняем значение куки
+
+    # Выводим значение куки, соответствующее пользователю с наименьшим возрастом и наибольшим количеством языков
     print(temp_age_lang['cookie_value'])
