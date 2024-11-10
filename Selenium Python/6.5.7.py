@@ -1,31 +1,52 @@
-# https://stepik.org/lesson/732069/step/6?unit=733602
+# https://stepik.org/lesson/732069/step/7?unit=733602
 
+import time
 from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 
-# Настройки для браузера Chrome
-options_chrome = webdriver.ChromeOptions()
-options_chrome.add_argument('--headless=new')  # Запускаем браузер в фоновом режиме (без GUI)
+# Запускаем браузер с помощью WebDriver
+with webdriver.Chrome() as browser:
+    # Переходим на указанную страницу
+    browser.get('https://parsinger.ru/selenium/5.7/4/index.html')
 
-# Используем контекстный менеджер для открытия браузера
-with webdriver.Chrome(options=options_chrome) as browser:
-    # Переходим на целевую страницу
-    browser.get('https://parsinger.ru/selenium/5.7/5/index.html')
+    # Находим контейнер, в котором происходит прокрутка
+    main_container = browser.find_element(By.ID, 'main_container')
 
-    # Находим все кнопки на странице по тегу <button>
-    buttons = browser.find_elements(By.TAG_NAME, 'button')
+    # Получаем начальную высоту прокручиваемого контейнера
+    last_height = browser.execute_script("return arguments[0].scrollHeight", main_container)
 
-    # Проходим по каждой кнопке
-    for button in buttons:
-        # Создаем объект ActionChains для выполнения действий с элементом
-        action = ActionChains(browser)
+    while True:
+        # Прокручиваем элемент до конца, устанавливая scrollTop в значение scrollHeight
+        browser.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", main_container)
 
-        # Нажимаем и удерживаем кнопку, затем паузим на время, равное тексту на кнопке
-        # 'button.text' это строка, которая представляет время задержки в секундах
-        action.click_and_hold(button).pause(float(button.text)).release(button).perform()
+        # Ждем немного времени, чтобы дать браузеру время на подгрузку контента
+        time.sleep(1)  # Увеличьте время ожидания, если контент подгружается медленно
 
-    # Получаем текст последнего всплывающего окна alert
-    alert_text = Alert(browser).text  # Считываем текст сообщения из alert
-    print(alert_text)  # Выводим текст alert на экран
+        # Получаем новую высоту прокручиваемого контейнера
+        new_height = browser.execute_script("return arguments[0].scrollHeight", main_container)
+
+        # Если высота не изменилась, значит, больше нет новых элементов, которые подгружаются
+        if new_height == last_height:
+            print("Достигнут конец прокрутки.")
+
+            # Находим все чекбоксы в контейнере
+            checkboxes = main_container.find_elements(By.CSS_SELECTOR, "div.child_container input[type='checkbox']")
+
+            # Кликаем по всем чекбоксам, чьи значения четные
+            for box in checkboxes:
+                if int(box.get_attribute('value')) % 2 == 0:
+                    box.click()
+
+            # Находим кнопку для подтверждения действия (например, кнопка "alert")
+            main_container.find_element(By.CLASS_NAME, 'alert_button').click()
+
+            # Переходим к всплывающему окну с алертом и получаем текст из этого окна
+            alert_text = Alert(browser).text
+            print(alert_text)  # Выводим текст алерта
+
+            # Завершаем выполнение цикла
+            break
+
+        # Обновляем переменную last_height для следующей итерации
+        last_height = new_height

@@ -24,7 +24,7 @@ with webdriver.Chrome(options=options_chrome) as browser:
         actions = ActionChains(browser)
         actions.click(scroll_element).key_down(Keys.PAGE_DOWN).perform()
 
-        # Ждем, чтобы дать странице время на подгруздку новых элементов
+        # Ждем, чтобы дать странице время на подгрузку новых элементов
         time.sleep(1)
 
         nums_elements = scroll_element.find_elements(By.TAG_NAME, 'p')
