@@ -20,9 +20,9 @@
 
 [Автор курса](https://stepik.org/users/khoshev/teach)
 
-# Проекты:
+## Проекты:
 
-## Основные:
+### Основные:
 
 - [WhatSapp Bot](https://github.com/Resmus1/WebParcing/blob/main/Project/Whatsapp/whatsapp.py)
 
