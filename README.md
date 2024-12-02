@@ -23,3 +23,20 @@
 [Автор курса](https://stepik.org/users/khoshev/teach)
 
 ---
+
+# Проекты:
+
+## Основные:
+
+- [WhatSapp Bot](https://github.com/Resmus1/WebParcing/blob/main/Project/Whatsapp/whatsapp.py)
+
+Бот для отправки картинок по файлу с номерами в контактах
+
+- [Avito Parsing](https://github.com/Resmus1/WebParcing/blob/main/Project/Avito/avito_parser.py)
+
+Парсер по Авито (Находится в разработке, проходит но рано или поздно в блок упирается)
+
+### Дополнения:
+- [GrabPicsList](https://github.com/Resmus1/WebParcing/blob/main/Project/Other/GrabPics.py)
+
+Создает список ссылок из указанной категории на сайте wishpics
