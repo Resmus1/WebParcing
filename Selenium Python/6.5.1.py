@@ -10,7 +10,7 @@ options_chrome = webdriver.ChromeOptions()
 options_chrome.add_argument('--headless=new')  # Запускаем браузер в фоновом режиме (без GUI)
 
 # Используем контекстный менеджер для открытия браузера
-with webdriver.Chrome(options=options_chrome) as browser:
+with webdriver.Chrome() as browser:
     # Переходим на целевую страницу
     browser.get('https://parsinger.ru/scroll/2/index.html')
     sum_num = 0
