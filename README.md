@@ -7,8 +7,6 @@
 2. Тестовые задания
 3. Пробные Проекты
 
----
-
 ## Изучение курса по WebParsing. (Представлено решение задач курса)
 
 ### WEB Парсинг на Python:
@@ -21,8 +19,6 @@
 - [Решение задач](https://github.com/Resmus1/WebParcing/tree/main/Selenium%20Python)
 
 [Автор курса](https://stepik.org/users/khoshev/teach)
-
----
 
 # Проекты:
 
