@@ -1,7 +1,6 @@
 import time
 from selenium import webdriver
 
-
 with webdriver.Chrome() as browser:
     result = []
     browser.get('http://parsinger.ru/blank/2/1.html')
