@@ -430,7 +430,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
         wait_for_element(data_browser, By.XPATH,'//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
 
         # Шаг 6: Отправка сообщения
-        # actions.send_keys(Keys.ENTER).perform()
+        actions.send_keys(Keys.ENTER).perform()
         logging.info(f"Изображение отправлено контакту: {phone_number}")
 
     except Exception:
@@ -485,4 +485,4 @@ if __name__ == "__main__":
     except requests.exceptions.RequestException as e:
         logging.error(f"Ошибка запроса: {e}")
     except Exception as e:
-        logging.exception("Непредвиденная ошибка:")
+        logging.exception(f"Непредвиденная ошибка: {e}")
