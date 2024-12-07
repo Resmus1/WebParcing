@@ -22,7 +22,7 @@ if __name__ == '__main__':
     sum_nums = 0
     try:
         # Инициализируем экземпляр браузера Chrome
-        browser = webdriver.Chrome()
+        browser = webdriver.Chrome(options=options)
         # Проходим по каждому URL в списке
         for site in sites:
             # Открываем новый таб с текущим URL
