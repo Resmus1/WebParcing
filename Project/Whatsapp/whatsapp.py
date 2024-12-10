@@ -433,6 +433,9 @@ def send_image(data_browser, position_search_box, phone_number, image):
         actions.send_keys(Keys.ENTER).perform()
         logging.info(f"Изображение отправлено контакту: {phone_number}")
 
+        # Ожидание загрузки изображения
+        time.sleep(1)
+
     except Exception:
         logging.exception(f"Ошибка при отправке изображения контакту {phone_number}")
 
