@@ -1,6 +1,3 @@
-# Подумать над ожиданием загрузки элемента картинки перед отправкой вместо таймера
-# Создать выбор картинки
-
 import os
 import time
 import logging
@@ -13,6 +10,8 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+import signal
+import sys
 
 '''
 Бот, который открывает whatsapp и делает рассылку картинки.
@@ -324,6 +323,15 @@ good_morning_list = ['https://wishpics.ru/site-images/wishpics_ru_14585.jpg',
                      'https://wishpics.ru/site-images/wishpics_ru_14815.jpg']
 
 
+def handle_exit(signal, frame):
+    logging.info("Программа завершена пользователем.")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, handle_exit)
+signal.signal(signal.SIGTERM, handle_exit)
+
+
 def load_phone_numbers(file_path):
     """
     Читает номера телефонов из текстового файла и возвращает их в виде списка.
@@ -354,36 +362,53 @@ def clear_search_box(data_browser, position_search_box):
         logging.exception("Ошибка очистки поля поиска")
 
 
-def download_and_convert_image(url, save_path="processed_image.jpg"):
+def preview_image(save_path="processed_image.jpg"):
     """
-    Скачивает изображение по URL, преобразует его в формат JPG и сохраняет локально.
+    Скачивание и сохранение изображения в файл.
     """
+    # url изображения
+    image_url = random.choice(good_morning_list)
     try:
         # Скачивание изображения
-        response = requests.get(url, stream=True)
+        response = requests.get(image_url, stream=True)
         response.raise_for_status()  # Проверка на ошибки HTTP
 
-        # Сохранение во временный файл
-        with open("temp_image.jpg", 'wb') as file:
+        with open(save_path, 'wb') as file:
             for chunk in response.iter_content(1024):
                 file.write(chunk)
-        logging.info("Изображение скачано: temp_image.jpg")
+        logging.info(f"Изображение скачано и сохранено: {save_path}")
 
-        # Открытие и преобразование в формат JPG
-        img = Image.open("temp_image.jpg")
-        img = img.convert("RGB")  # Преобразование в RGB для совместимости
-        img.save(save_path, "JPEG")
-        logging.info(f"Изображение пересохранено как JPG: {save_path}")
-
-        # Удаление временного файла
-        os.remove("temp_image.jpg")
-        logging.info("Временный файл удален")
+        img = Image.open(save_path)
+        img.show()
 
         return os.path.abspath(save_path)
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Ошибка загрузки изображения: {e}")
         return None
+    except Exception as e:
+        logging.error(f"Ошибка обработки изображения: {e}")
+        return None
+
+
+def convert_image(save_path="processed_image.jpg"):
+    """
+    Преобразует изображение в формат JPG, если это нужно.
+    """
+    try:
+        # Если изображение уже сохранено в save_path, проверим его формат
+        img = Image.open(save_path)
+
+        # Преобразование в формат RGB, если это необходимо
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+
+        # Перезаписываем файл в том же месте
+        img.save(save_path, "JPEG")
+        logging.info(f"Изображение пересохранено как JPG: {save_path}")
+
+        return os.path.abspath(save_path)
+
     except Exception as e:
         logging.error(f"Ошибка обработки изображения: {e}")
         return None
@@ -433,7 +458,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
         wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
 
         # Шаг 6: Отправка сообщения
-        actions.send_keys(Keys.ENTER).perform()
+        # actions.send_keys(Keys.ENTER).perform()
         logging.info(f"Изображение отправлено контакту: {phone_number}")
 
         # Ожидание загрузки изображения
@@ -445,46 +470,44 @@ def send_image(data_browser, position_search_box, phone_number, image):
 
 if __name__ == "__main__":
     try:
-        # Загружаем список номеров из файла
         phone_numbers = load_phone_numbers('Phone Numbers.txt')
 
         if not phone_numbers:
             raise ValueError("Список номеров пуст или не удалось загрузить.")
 
-        # URL изображения
-        image_url = random.choice(good_morning_list)
+        temp_image = preview_image()
+        if not temp_image:
+            raise ValueError("Не удалось загрузить изображение.")
 
-        # Шаг 1: Скачивание и преобразование изображения
-        local_image_path = download_and_convert_image(image_url)
+        while input("Отправьте:\n1.Отправить Изображение\n2.Следующее Изображение\n==>> ") != '1':
+            temp_image = preview_image()
+            if not temp_image:
+                raise ValueError("Не удалось загрузить изображение.")
 
-        # Шаг 2: Настройка браузера
-        if local_image_path:
-            options = webdriver.ChromeOptions()
-            profile_path = r"C:\Users\ReSmus\AppData\Local\Google\Chrome\User Data"
-            profile_name = "Default"
-            options.add_argument(f"--user-data-dir={profile_path}")
-            options.add_argument(f"--profile-directory={profile_name}")
+        local_image_path = convert_image(temp_image)
+        if not local_image_path:
+            raise ValueError("Не удалось преобразовать изображение.")
 
-            # Шаг 3: Открытие WhatsApp Web
-            with webdriver.Chrome(options=options) as browser:
-                browser.get('https://web.whatsapp.com/')
+        options = webdriver.ChromeOptions()
+        profile_path = r"C:\Users\ReSmus\AppData\Local\Google\Chrome\User Data"
+        profile_name = "Default"
+        options.add_argument(f"--user-data-dir={profile_path}")
+        options.add_argument(f"--profile-directory={profile_name}")
 
-                # Извлечение поля поиска
-                search_box = wait_for_element(browser, By.XPATH, '//*[@id="side"]/div[1]/div/div[2]')
-                if not search_box:
-                    raise ValueError("Поле поиска не найдено")
+        with webdriver.Chrome(options=options) as browser:
+            browser.get('https://web.whatsapp.com/')
+            search_box = wait_for_element(browser, By.XPATH, '//*[@id="side"]/div[1]/div/div[2]')
+            if not search_box:
+                raise ValueError("Поле поиска не найдено")
 
-                # Список номеров и отправка изображения
-                for number in phone_numbers:
-                    send_image(browser, search_box, number, local_image_path)
+            for number in phone_numbers:
+                send_image(browser, search_box, number, local_image_path)
 
-                # Удаление файла для отправки
-                if os.path.exists("processed_image.jpg"):
-                    os.remove("processed_image.jpg")
-                    logging.info("Файл удален")
+            if os.path.exists("processed_image.jpg"):
+                os.remove("processed_image.jpg")
+                logging.info("Файл удален")
 
-                logging.info("Программа успешно завершила свою работу")
-
+            logging.info("Программа успешно завершила свою работу")
     except FileNotFoundError as e:
         logging.error(f"Файл не найден: {e}")
     except requests.exceptions.RequestException as e:
