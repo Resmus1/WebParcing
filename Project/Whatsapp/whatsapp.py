@@ -1,3 +1,6 @@
+# Подумать над ожиданием загрузки элемента картинки перед отправкой вместо таймера
+# Создать выбор картинки
+
 import os
 import time
 import logging
@@ -386,12 +389,12 @@ def download_and_convert_image(url, save_path="processed_image.jpg"):
         return None
 
 
-def wait_for_element(browser, by, locator, timeout=30):
+def wait_for_element(driver, by, locator, timeout=30):
     """
     Ожидание появления элемента на странице.
     """
     try:
-        return WebDriverWait(browser, timeout).until(ec.presence_of_element_located((by, locator)))
+        return WebDriverWait(driver, timeout).until(ec.presence_of_element_located((by, locator)))
     except Exception:
         logging.exception(f"Ошибка ожидания элемента: {locator}")
         return None
@@ -415,7 +418,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
 
         # Шаг 4: Нажатие кнопки прикрепления
         attach_button = wait_for_element(
-            data_browser, By.XPATH, '//*[@id="main"]/footer/div[1]/div/span/div/div[1]/div[2]'
+            data_browser, By.XPATH, '//*[@id="main"]/footer/div[1]/div/span/div/div[1]/div'
         )
         if attach_button:
             attach_button.click()
@@ -427,7 +430,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
             file_input.send_keys(image)
             logging.info(f"Изображение загружено: {image}")
 
-        wait_for_element(data_browser, By.XPATH,'//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
+        wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
 
         # Шаг 6: Отправка сообщения
         actions.send_keys(Keys.ENTER).perform()
@@ -465,7 +468,6 @@ if __name__ == "__main__":
             # Шаг 3: Открытие WhatsApp Web
             with webdriver.Chrome(options=options) as browser:
                 browser.get('https://web.whatsapp.com/')
-                time.sleep(10)  # Время для полной загрузки страницы
 
                 # Извлечение поля поиска
                 search_box = wait_for_element(browser, By.XPATH, '//*[@id="side"]/div[1]/div/div[2]')
