@@ -1,3 +1,5 @@
+# Проверить ожидание установленное мною
+
 import os
 import time
 import logging
@@ -9,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support import expected_conditions as EC
 import signal
 import sys
 
@@ -419,7 +421,7 @@ def wait_for_element(driver, by, locator, timeout=30):
     Ожидание появления элемента на странице.
     """
     try:
-        return WebDriverWait(driver, timeout).until(ec.presence_of_element_located((by, locator)))
+        return WebDriverWait(driver, timeout).until(EC.presence_of_element_located((by, locator)))
     except Exception:
         logging.exception(f"Ошибка ожидания элемента: {locator}")
         return None
@@ -458,11 +460,8 @@ def send_image(data_browser, position_search_box, phone_number, image):
         wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
 
         # Шаг 6: Отправка сообщения
-        # actions.send_keys(Keys.ENTER).perform()
-        logging.info(f"Изображение отправлено контакту: {phone_number}")
-
-        # Ожидание загрузки изображения
-        time.sleep(1)
+        actions.send_keys(Keys.ENTER).perform()
+        logging.info(f"Изображение отправлено контакту: 2{phone_number}")
 
     except Exception:
         logging.exception(f"Ошибка при отправке изображения контакту {phone_number}")
@@ -507,7 +506,10 @@ if __name__ == "__main__":
                 os.remove("processed_image.jpg")
                 logging.info("Файл удален")
 
+            # Ожидание загрузки всех отправленных сообщений
+            time.sleep(5)
             logging.info("Программа успешно завершила свою работу")
+
     except FileNotFoundError as e:
         logging.error(f"Файл не найден: {e}")
     except requests.exceptions.RequestException as e:
