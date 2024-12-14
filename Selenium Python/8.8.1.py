@@ -15,7 +15,7 @@ options.add_argument('--headless=new')
 if __name__ == '__main__':
     try:
         # Инициализируем веб-драйвер Chrome
-        browser = webdriver.Chrome()
+        browser = webdriver.Chrome(options=options)
         # Открываем указанную веб-страницу
         browser.get('https://parsinger.ru/expectations/3/index.html')
 
