@@ -36,7 +36,8 @@ if __name__ == '__main__':
                 button_locator = f'.box_button:nth-of-type({i + 1})'
 
                 # Ожидаем появления текста в кнопке
-                WebDriverWait(browser, 30).until(lambda driver: len(driver.find_element(By.CSS_SELECTOR, button_locator).text) > 0)
+                WebDriverWait(browser, 30).until(
+                    lambda driver: len(driver.find_element(By.CSS_SELECTOR, button_locator).text) > 0)
 
                 # Добавляем текст кнопки в результат
                 result.append(button[i].text)
