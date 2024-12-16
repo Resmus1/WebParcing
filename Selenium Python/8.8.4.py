@@ -19,8 +19,7 @@ if __name__ == '__main__':  # Проверяем, что скрипт запущ
 
             # Ожидаем появления элемента с ID "qQm9y1rk" и кликаем на него
             WebDriverWait(browser, 120, poll_frequency=0.1).until(
-                EC.presence_of_element_located((By.ID, 'qQm9y1rk'))
-            ).click()
+                EC.presence_of_element_located((By.ID, 'qQm9y1rk'))).click()
 
             # Переключаемся на всплывающее окно (alert) и выводим его текст
             print(browser.switch_to.alert.text)
