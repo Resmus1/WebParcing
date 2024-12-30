@@ -457,7 +457,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
             file_input.send_keys(image)
             logging.info(f"Изображение загружено: {image}")
 
-        wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div[2]/div[2]/span/div')
+        wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div/div[2]/div[2]/span/div/div/div/div[2]/div/div[2]/div[2]/div')
 
         # Шаг 6: Отправка сообщения
         actions.send_keys(Keys.ENTER).perform()
