@@ -9,6 +9,10 @@
 
 ## Изучение курса по WebParsing. (Представлено решение задач курса)
 
+### Selenium на Python:
+- [Урок на Stepik](https://stepik.org/course/188355)
+- [Решение задач](https://github.com/Resmus1/WebParcing/tree/main/Selenium%20%D0%BD%D0%B0%20Python)
+
 ### WEB Парсинг на Python:
 - [Урок на Stepik](https://stepik.org/course/104774)
 - [Решение задач](https://github.com/Resmus1/WebParcing/tree/main/WEB%20%D0%9F%D0%B0%D1%80%D1%81%D0%B8%D0%BD%D0%B3%20%D0%BD%D0%B0%20Python)
