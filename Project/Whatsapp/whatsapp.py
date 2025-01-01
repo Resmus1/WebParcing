@@ -7,7 +7,6 @@ import requests
 import random
 from PIL import Image
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -441,21 +440,21 @@ def send_image(data_browser, position_search_box, phone_number, image):
         logging.info(f"Поиск контакта: {phone_number}")
 
         # Шаг 3: Ожидание загрузки чата
-        wait_for_element(data_browser, By.XPATH, '//*[@id="main"]/footer')
+        wait_for_element(data_browser, 'xpath', '//*[@id="main"]/footer')
 
         # Шаг 4: Нажатие кнопки прикрепления
-        attach_button = wait_for_element(data_browser, By.XPATH, "//button[contains(@title, 'Прикрепить')]")
+        attach_button = wait_for_element(data_browser, 'xpath', "//button[contains(@title, 'Прикрепить')]")
         if attach_button:
             attach_button.click()
             logging.info("Кнопка прикрепления нажата")
 
         # Шаг 5: Выбор файла
-        file_input = wait_for_element(data_browser, By.XPATH, "(//input[@type='file'])[2]")
+        file_input = wait_for_element(data_browser, 'xpath', "(//input[@type='file'])[2]")
         if file_input:
             file_input.send_keys(image)
             logging.info(f"Изображение загружено: {image}")
 
-        wait_for_element(data_browser, By.XPATH, "//div[@aria-label='Отправить']")
+        wait_for_element(data_browser, 'xpath', "//div[@aria-label='Отправить']")
 
         # Шаг 6: Отправка сообщения
         actions.send_keys(Keys.ENTER).perform()
@@ -493,7 +492,7 @@ if __name__ == "__main__":
 
         with webdriver.Chrome(options=options) as browser:
             browser.get('https://web.whatsapp.com/')
-            search_box = wait_for_element(browser, By.XPATH, '//*[@id="side"]/div[1]/div/div[2]')
+            search_box = wait_for_element(browser, 'xpath', "//div[@aria-owns='emoji-suggestion']")
             if not search_box:
                 raise ValueError("Поле поиска не найдено")
 
