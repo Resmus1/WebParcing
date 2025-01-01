@@ -444,9 +444,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
         wait_for_element(data_browser, By.XPATH, '//*[@id="main"]/footer')
 
         # Шаг 4: Нажатие кнопки прикрепления
-        attach_button = wait_for_element(
-            data_browser, By.XPATH, '//*[@id="main"]/footer/div[1]/div/span/div/div[1]/div'
-        )
+        attach_button = wait_for_element(data_browser, By.XPATH, "//button[contains(@title, 'Прикрепить')]")
         if attach_button:
             attach_button.click()
             logging.info("Кнопка прикрепления нажата")
@@ -457,7 +455,7 @@ def send_image(data_browser, position_search_box, phone_number, image):
             file_input.send_keys(image)
             logging.info(f"Изображение загружено: {image}")
 
-        wait_for_element(data_browser, By.XPATH, '//*[@id="app"]/div/div[3]/div/div[2]/div[2]/span/div/div/div/div[2]/div/div[2]/div[2]/div')
+        wait_for_element(data_browser, By.XPATH, "//div[@aria-label='Отправить']")
 
         # Шаг 6: Отправка сообщения
         actions.send_keys(Keys.ENTER).perform()
