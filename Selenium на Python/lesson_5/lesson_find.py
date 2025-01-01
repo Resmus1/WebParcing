@@ -12,7 +12,7 @@ with webdriver.Chrome() as browser:
 
     # Явное ожидание: ждём до 10 секунд с интервалом 0.5 секунды, пока кнопка не станет кликабельной
     button = WebDriverWait(browser, 10, 0.5).until(
-        EC.element_to_be_clickable(browser.find_element('xpath', '//*[@id=":R55ab:"]'))  # Ищем кнопку по XPath
+        EC.element_to_be_clickable(('xpath', '//*[@id=":R55ab:"]'))  # Ищем кнопку по XPath
     )
 
     # Нажимаем на найденную кнопку
