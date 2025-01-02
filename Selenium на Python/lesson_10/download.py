@@ -12,7 +12,7 @@ chrom_option.add_argument('--headless=new')  # Запускаем браузер
 
 # Настраиваем параметры для загрузки файлов
 prefs = {
-    "download.default_directory": f"{os.path.abspath('downloads')}",  # Указываем путь к папке загрузки
+    "download.default_directory": f"{os.path.join(os.getcwd(), 'downloads')}",  # Указываем путь к папке загрузки
 }
 chrom_option.add_experimental_option('prefs', prefs)  # Передаем настройки загрузки в браузер
 
