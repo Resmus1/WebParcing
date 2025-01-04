@@ -1,5 +1,7 @@
 # Проверить ожидание установленное мною
 
+# Добавиить первоначальную прогрузку, бывает не прогружает пока диалоги не загрузит!1
+
 import os
 import time
 import logging
@@ -484,13 +486,13 @@ if __name__ == "__main__":
         if not local_image_path:
             raise ValueError("Не удалось преобразовать изображение.")
 
-        options = webdriver.ChromeOptions()
-        profile_path = r"C:\Users\ReSmus\AppData\Local\Google\Chrome\User Data"
+        chrome_options = webdriver.ChromeOptions()
+        profile_path = r"C:\PyCharm\WebParcing\Project\Whatsapp\Chrome\User Data"
         profile_name = "Default"
-        options.add_argument(f"--user-data-dir={profile_path}")
-        options.add_argument(f"--profile-directory={profile_name}")
+        chrome_options.add_argument(f"--user-data-dir={profile_path}")
+        chrome_options.add_argument(f"--profile-directory={profile_name}")
 
-        with webdriver.Chrome(options=options) as browser:
+        with webdriver.Chrome(options=chrome_options) as browser:
             browser.get('https://web.whatsapp.com/')
             search_box = wait_for_element(browser, 'xpath', "//div[@aria-owns='emoji-suggestion']")
             if not search_box:
